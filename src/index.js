@@ -1,33 +1,91 @@
-const app = require('./app');
+const Logger = require('./utils/logger');
+
+/**
+ * Setup logger
+ */
+Logger.project('api-smart-locker');
+const logger = Logger('app');
+
+const compression = require('compression');
+const express = require('express');
+const cors = require('cors');
+const httpContext = require('express-http-context');
+
+process.setMaxListeners(0);
+
+const rootRoutes = require('./routes/root');
+const routes = require('./routes');
+const helmet = require('helmet');
 const config = require('./configs');
-const logger = require('./configs/logger');
+const morgan = require('morgan');
+const generateRequestID = require('./utils/requestIdGenerator');
+const errorHandler = require('./utils/errorHandler');
 
-const server = app.listen(config.port, () => {
-  logger.info(`Listening to port ${config.port}`);
-});
+const { WHITELIST_ORIGINS } = require('./utils/constants/global');
 
-const exitHandler = () => {
-  if (server) {
-    server.close(() => {
-      logger.info('Server closed');
-      process.exit(1);
-    });
-  }
+/**
+ * Generate Express App
+ */
+function generateExpressApp() {
+  const app = express();
 
-  process.exit(1);
-};
+  // first, log request
+  app.use(morgan(':method :url ▶ :status 💻 :user-agent (⌚ :response-time ms)', { stream: Logger('http').stream }));
 
-const unexpectedErrorHandler = (error) => {
-  logger.error(error);
-  exitHandler();
-};
+  app.use(httpContext.middleware);
+  app.use((req, res, next) => {
+    httpContext.set('requestId', generateRequestID());
+    next();
+  });
 
-process.on('uncaughtException', unexpectedErrorHandler);
-process.on('unhandledRejection', unexpectedErrorHandler);
+  app.use('/static', express.static('./public'));
 
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received');
-  if (server) {
-    server.close();
-  }
-});
+  // set security HTTP headers
+  app.use(helmet());
+
+  // parse json request body
+  app.use(express.json({ limit: '100mb' }));
+
+  // parse urlencoded request body
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // gzip compression
+  app.use(compression());
+
+  // set security cors
+  app.use(cors({
+    origin: WHITELIST_ORIGINS,
+    credentials: true,
+  }));
+
+  // root routes
+  app.use('/api', rootRoutes);
+
+  // v1 api routes
+  app.use('/api/v1', routes);
+
+  // handle error
+  app.use(errorHandler);
+
+  return app;
+}
+
+/**
+ * Start Local Express Server
+ */
+function startLocalServer() {
+  const app = generateExpressApp();
+  const ENV = config.env || 'development';
+  const HOST = config.host || '0.0.0.0';
+  const PORT = config.port ? Number(config.port) : 8080;
+
+  app.listen(PORT, HOST, () => {
+    logger.debug(`App is running at http://${HOST}:${PORT}/ in ${ENV} mode`, { HOST, PORT, ENV });
+  });
+
+  return app;
+}
+
+const API = startLocalServer();
+
+module.exports = { API };
