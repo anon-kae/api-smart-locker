@@ -11,6 +11,7 @@ const express = require('express');
 const cors = require('cors');
 const httpContext = require('express-http-context');
 
+require('./models');
 process.setMaxListeners(0);
 
 const rootRoutes = require('./routes/root');
