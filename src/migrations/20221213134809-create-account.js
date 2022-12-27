@@ -1,5 +1,5 @@
 module.exports = {
-  up: (queryInterface, Sequelize) => queryInterface.sequelize.transaction(async (t) => {
+  up: (queryInterface, Sequelize) => queryInterface.sequelize.transaction(async (transaction) => {
     await queryInterface.createTable('Accounts', {
       id: {
         allowNull: false,
@@ -14,6 +14,10 @@ module.exports = {
       lastName: {
         type: Sequelize.STRING,
         allowNull: false
+      },
+      roleId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
       },
       email: {
         type: Sequelize.STRING,
@@ -41,10 +45,15 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.NOW
       }
-    }, { transaction: t });
+    }, { transaction });
+
+    await queryInterface.addIndex('Accounts', ['id'], { fields: 'id', transaction });
+    await queryInterface.addIndex('Accounts', ['roleId'], { fields: 'roleId', transaction });
   }),
-  down: (queryInterface) => queryInterface.sequelize.transaction(async (t) => {
+  down: (queryInterface) => queryInterface.sequelize.transaction(async (transaction) => {
+    await queryInterface.removeIndex('Accounts', ['id'], { transaction });
+    await queryInterface.removeIndex('Accounts', ['roleId'], { transaction });
     await queryInterface.dropTable('Accounts');
-    await queryInterface.dropEnum('enum_Accounts_status', { transaction: t });
+    await queryInterface.dropEnum('enum_Accounts_status', { transaction });
   })
 };
