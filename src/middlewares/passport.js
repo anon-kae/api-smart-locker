@@ -1,10 +1,11 @@
+const logger = require('../utils/logger')('passport');
 const passport = require('passport');
 const httpContext = require('express-http-context');
 const { AccountService } = require('../services');
 const { Strategy: JWTStrategy, ExtractJwt: ExtractJWT } = require('passport-jwt');
-const models = require('../models');
-const logger = require('../utils/logger')('passport');
+const repositories = require('../repositories');
 const config = require('../configs');
+const { ROLE } = require('../utils/constants/account');
 
 const extractJWT = ExtractJWT.fromAuthHeaderAsBearerToken();
 const optionStrategyWithJWT = {
@@ -21,25 +22,29 @@ const optionStrategyWithJWT = {
  * @returns {Promise<*>}
  */
 async function authenticateWithJWT(req, jwtPayload, done) {
-  const { id: accountId } = jwtPayload;
+  const { id: accountId, type, app } = jwtPayload;
+  if (type !== 'access') {
+    return done(null, false, { message: 'Invalid access token' });
+  }
+
   try {
     let account = null;
 
-    try {
-      const accountService = new AccountService(models);
-      const response = await accountService.findAccountById(accountId);
+    const accountService = new AccountService(repositories);
+    const response = await accountService.findAccountById(accountId);
 
-      account = response.data.data;
-    } catch (error) {
-      logger.error(`Error: JWT Login accountId=${accountId}, not found`, { accountId });
+    account = response;
+
+    if (!account) {
+      logger.error(`Failed to JWT Login for account id=${account}, not found`, { account });
       return done(null, false, { message: 'Invalid user' });
     }
 
-    /* return user */
-    logger.info(`Success: JWT Login accountId=${accountId}`, { accountId });
-    const { id } = account;
+    logger.info(`Successfully JWT Login for account id=${accountId}`, { accountId });
 
-    httpContext.set('accountId', id);
+    httpContext.set('accountId', accountId);
+    req.jwt = { type, app };
+
     return done(null, account);
   } catch (error) {
     logger.error(error, { accountId });
@@ -55,3 +60,28 @@ passport.use(new JWTStrategy(optionStrategyWithJWT, authenticateWithJWT));
 
 exports.isJWTAutenticated = passport.authenticate('jwt', { session: false });
 
+exports.isAdmin = async (req, res, next) => {
+  if (!req.account) {
+    return res.status(401).json({ error: { message: 'Unauthenticated' } });
+  }
+
+  const hasRole = req.user.role;
+  if (!hasRole && hasRole !== ROLE.admin) {
+    return res.status(403).json({ error: { message: 'Permission Denied' } });
+  }
+
+  next();
+};
+
+exports.isUser = async (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: { message: 'Unauthenticated' } });
+  }
+
+  const hasRole = req.user.role;
+  if (!hasRole && hasRole !== ROLE.user) {
+    return res.status(403).json({ error: { message: 'Permission Denied' } });
+  }
+
+  next();
+};
