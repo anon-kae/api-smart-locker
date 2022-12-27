@@ -2,7 +2,7 @@ const logger = require('./logger')('ErrorHandler');
 const errors = require('../errors');
 const config = require('../configs');
 
-const { PermissionError, ResourceNotFoundError, ValidationError } = errors;
+const { PermissionError, ResourceNotFoundError, ValidationError, UnauthorizedError } = errors;
 
 /**
  * Error Handler
@@ -17,6 +17,8 @@ async function errorHandler(err, req, res, next) {
 
     if (err instanceof PermissionError) {
       return res.status(403).send({ error: { message } });
+    } else if (err instanceof UnauthorizedError) {
+      return res.status(401).send({ error: { message } });
     } else if (err instanceof ResourceNotFoundError) {
       return res.status(404).send({ error: { message } });
     } else if (err instanceof ValidationError) {
