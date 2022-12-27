@@ -17,7 +17,9 @@ const environmentSchema = {
   DB_PORT: joi.number().required().default(5432),
   DB_NAME: joi.string().required(),
   DB_PASSWORD: joi.string().required(),
-  DB_USERNAME: joi.string().required()
+  DB_USERNAME: joi.string().required(),
+  DB_TIMEZONE: joi.string().required(),
+  DB_DIALECT: joi.string().required(),
 };
 
 const validateEnvironmentSchema = joi.object().keys(environmentSchema).unknown();
@@ -41,11 +43,13 @@ module.exports = {
   jwt: {
     secret: environment.JWT_SECRET
   },
-  database: {
-    databaseName: environment.DB_NAME,
-    hostname: environment.DB_HOSTNAME,
+  databaseCredential: {
+    database: environment.DB_NAME,
+    host: environment.DB_HOSTNAME,
     port: environment.DB_PORT,
     username: environment.DB_USERNAME,
     password: environment.DB_PASSWORD,
+    timezone: environment.DB_TIMEZONE,
+    dialect: environment.DB_DIALECT,
   }
 };

@@ -1,18 +1,26 @@
 module.exports = {
   up: (queryInterface, Sequelize) => queryInterface.sequelize.transaction(async (transaction) => {
-    await queryInterface.createTable('Locations', {
+    await queryInterface.createTable('LockerRooms', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      locateName: {
+      size: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: false
       },
-      address: {
-        type: Sequelize.STRING,
+      column: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+      },
+      row: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+      },
+      lockerId: {
+        type: Sequelize.INTEGER,
         allowNull: false,
       },
       status: {
@@ -33,11 +41,13 @@ module.exports = {
       }
     }, { transaction });
 
-    await queryInterface.addIndex('Locations', ['id'], { fields: 'id', transaction });
+    await queryInterface.addIndex('LockerRooms', ['id'], { fields: 'id', transaction });
+    await queryInterface.addIndex('LockerRooms', ['lockerId'], { fields: 'lockerId', transaction });
   }),
   down: (queryInterface) => queryInterface.sequelize.transaction(async (transaction) => {
-    await queryInterface.removeIndex('Locations', ['id'], { transaction });
-    await queryInterface.dropTable('Locations');
-    await queryInterface.dropEnum('enum_Locations_status', { transaction });
+    await queryInterface.removeIndex('LockerRooms', ['id'], { transaction });
+    await queryInterface.removeIndex('LockerRooms', ['lockerId'], { transaction });
+    await queryInterface.dropTable('LockerRooms');
+    await queryInterface.dropEnum('enum_LockerRooms_status', { transaction });
   })
 };

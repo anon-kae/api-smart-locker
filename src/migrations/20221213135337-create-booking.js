@@ -1,5 +1,5 @@
 module.exports = {
-  up: (queryInterface, Sequelize) => queryInterface.sequelize.transaction(async (t) => {
+  up: (queryInterface, Sequelize) => queryInterface.sequelize.transaction(async (transaction) => {
     await queryInterface.createTable('Bookings', {
       id: {
         allowNull: false,
@@ -11,6 +11,14 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
         validate: { len: [1, 6] }
+      },
+      accountId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+      },
+      lockerId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
       },
       passCodeOut: {
         type: Sequelize.STRING,
@@ -37,10 +45,17 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.NOW
       }
-    }, { transaction: t });
+    }, { transaction });
+
+    await queryInterface.addIndex('Bookings', ['id'], { fields: 'id', transaction });
+    await queryInterface.addIndex('Bookings', ['accountId'], { fields: 'accountId', transaction });
+    await queryInterface.addIndex('Bookings', ['lockerId'], { fields: 'lockerId', transaction });
   }),
-  down: (queryInterface) => queryInterface.sequelize.transaction(async (t) => {
+  down: (queryInterface) => queryInterface.sequelize.transaction(async (transaction) => {
+    await queryInterface.removeIndex('Bookings', ['id'], { transaction });
+    await queryInterface.removeIndex('Bookings', ['accountId'], { transaction });
+    await queryInterface.removeIndex('Bookings', ['lockerId'], { transaction });
     await queryInterface.dropTable('Bookings');
-    await queryInterface.dropEnum('enum_Bookings_status', { transaction: t });
+    await queryInterface.dropEnum('enum_Bookings_status', { transaction });
   })
 };

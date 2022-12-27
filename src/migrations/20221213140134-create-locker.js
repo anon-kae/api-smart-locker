@@ -1,5 +1,5 @@
 module.exports = {
-  up: (queryInterface, Sequelize) => queryInterface.sequelize.transaction(async (t) => {
+  up: (queryInterface, Sequelize) => queryInterface.sequelize.transaction(async (transaction) => {
     await queryInterface.createTable('Lockers', {
       id: {
         allowNull: false,
@@ -27,10 +27,13 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.NOW
       }
-    }, { transaction: t });
+    }, { transaction });
+
+    await queryInterface.addIndex('Lockers', ['id'], { fields: 'id', transaction });
   }),
-  down: (queryInterface) => queryInterface.sequelize.transaction(async (t) => {
+  down: (queryInterface) => queryInterface.sequelize.transaction(async (transaction) => {
+    await queryInterface.removeIndex('Lockers', ['id'], { transaction });
     await queryInterface.dropTable('Lockers');
-    await queryInterface.dropEnum('enum_Lockers_status', { transaction: t });
+    await queryInterface.dropEnum('enum_Lockers_status', { transaction });
   })
 };

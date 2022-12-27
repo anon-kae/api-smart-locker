@@ -1,5 +1,5 @@
-const { failed } = require('../configs/response');
-const logger = require('../configs/logger');
+const logger = require('../utils/logger')('ValidateSchema');
+const { ValidationError } = require('../errors');
 
 /**
  * Validate Schema
@@ -11,12 +11,13 @@ exports.validateSchema = (schema, properties = 'body') => async (req, res, next)
     const errorStrings = error?.details.map(({ message }) => message).join(', ').replace(/["]/g, '');
 
     if (errorStrings) {
-      return failed({ res, message: errorStrings.split(', ') });
+      throw new ValidationError(errorStrings.split(', '));
     }
 
     next();
   } catch (error) {
     logger.error(error);
-    return failed({ res, error });
+    next(error);
   }
 };
+
